@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the associated paper."
+title: "Worst-Case LTI Perturbations of Finite-Horizon LQR: A Performance Estimation Problem Approach"
+type: software
+authors:
+  - family-names: Couthures
+    given-names: Anthony
+    email: anthony.couthures@uclouvain.be
+    affiliation: "ICTEAM, UCLouvain"
+  - family-names: Bianchin
+    given-names: Gianluca
+    affiliation: "ICTEAM, UCLouvain"
+  - family-names: Hendrickx
+    given-names: Julien M.
+    affiliation: "ICTEAM, UCLouvain"
+repository-code: "https://github.com/<your-username>/<repo-name>"
+license: MIT
+keywords:
+  - LQR
+  - robust control
+  - performance estimation problem
+  - semidefinite programming
+  - finite horizon
+  - structured uncertainty
+  - pseudospectrum

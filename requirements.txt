@@ -1,0 +1,9 @@
+numpy>=1.24
+scipy>=1.10
+cvxpy>=1.4
+matplotlib>=3.7
+ipywidgets>=8.0
+ipython
+jupyterlab
+# Optional but recommended (free academic license): faster/more accurate SDPs
+# mosek
