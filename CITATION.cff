@@ -13,7 +13,7 @@ authors:
   - family-names: Hendrickx
     given-names: Julien M.
     affiliation: "ICTEAM, UCLouvain"
-repository-code: "https://github.com/<your-username>/<repo-name>"
+repository-code: "https://github.com/AnthonyCouthures/PEP-LQR"
 license: MIT
 keywords:
   - LQR
