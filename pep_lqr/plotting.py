@@ -246,7 +246,7 @@ def match_poles(p_prev, p_curr):
 
 
 def plot_pole_migration(N_values, wc_poles, problem, filename="spectral_migration_trajectory_2D.pdf", seed=0,
-                        inset_N_max=5, inset_box=(-0.9, -0.98, 0.95, 0.85)):
+                        inset_N_max=5, inset_box=(-0.95, -0.98, 0.88, 0.85)):
     """Worst-case closed-loop poles as a function of the horizon N, over the exact structured pseudospectrum.
 
     Also marks the dominant eigenvalue of the spectral-radius maximising perturbation (asymptotic worst case),
@@ -274,7 +274,7 @@ def plot_pole_migration(N_values, wc_poles, problem, filename="spectral_migratio
     cmap = mpl.cm.plasma
     norm = mpl.colors.Normalize(vmin=min(N_values), vmax=max(N_values))
     prev_poles = None
-    list_length = len(N_values)
+    N_last = max(N_values)
     matched = {}
     for N in N_values:
         if N not in wc_poles:
@@ -292,9 +292,9 @@ def plot_pole_migration(N_values, wc_poles, problem, filename="spectral_migratio
 
         if N > 5:
             if N == 6:
-                ax.annotate(f"6--{list_length + 1}", xy=(p[0].real, p[0].imag), xytext=(0, 4), textcoords='offset points',
+                ax.annotate(f"6--{N_last}", xy=(p[0].real, p[0].imag), xytext=(0, 4), textcoords='offset points',
                             ha='left', va='bottom', fontsize=8, color='black', zorder=10)
-                ax.annotate(f"{list_length + 1}--6", xy=(p[1].real, p[1].imag), xytext=(0, 4), textcoords='offset points',
+                ax.annotate(f"{N_last}--6", xy=(p[1].real, p[1].imag), xytext=(0, 4), textcoords='offset points',
                             ha='right', va='bottom', fontsize=8, color='black', zorder=10)
         else:
             ax.annotate(str(N), xy=(p[0].real, p[0].imag), xytext=(3, 4), textcoords='offset points',
@@ -305,7 +305,9 @@ def plot_pole_migration(N_values, wc_poles, problem, filename="spectral_migratio
 
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
-    cbar = fig.colorbar(sm, ax=ax, fraction=0.046, pad=0.04)
+    N_first = min(N_values)
+    cbar = fig.colorbar(sm, ax=ax, fraction=0.046, pad=0.04,
+                        ticks=np.unique([N_first, *range(5, N_last, 5), N_last]))   # always label the last horizon
     cbar.set_label('Planning Horizon ($N$)', rotation=270, labelpad=12, fontsize=7)
     cbar.ax.tick_params(labelsize=7)
 
@@ -367,7 +369,10 @@ def _pole_inset(ax, problem, matched, Ns, cmap, norm, box, pad_left=0.015, pad_r
     axins.set_xlim(x0, x1)
     axins.set_ylim(y0, y1)
     axins.set_aspect('auto')
-    axins.tick_params(labelsize=5)
+    # tick labels on the top and right edges, so they do not collide with the main axis tick labels
+    axins.xaxis.tick_top()
+    axins.yaxis.tick_right()
+    axins.tick_params(labelsize=5, pad=1, length=2)
     axins.grid(True)
     ax.indicate_inset_zoom(axins, edgecolor='black', lw=0.6)
 
