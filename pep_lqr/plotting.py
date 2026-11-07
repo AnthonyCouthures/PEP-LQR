@@ -56,6 +56,18 @@ def _fig_path(filename):
     return os.path.join(FIG_DIR, filename)
 
 
+def _save(fig, filename):
+    """Saves a paper figure as PDF with a transparent background.
+
+    Axes flagged with `keep_opaque = True` (e.g. insets) keep their background, which savefig(transparent=True)
+    would also clear."""
+    fig.patch.set_alpha(0)
+    for a in fig.axes:
+        if not getattr(a, "keep_opaque", False):
+            a.patch.set_alpha(0)
+    fig.savefig(_fig_path(filename), bbox_inches='tight', format="pdf")
+
+
 def _latex_works():
     """True if matplotlib can render text with LaTeX and the newtxtext package."""
     if not (shutil.which("latex") and shutil.which("dvipng")):
@@ -170,7 +182,7 @@ def plot_function(res, name):
     t_color = 'green' if res['is_tight'] else 'red'
     ax1.text(0.02, 0.02, sanity_text, transform=ax1.transAxes, fontsize=5, verticalalignment='bottom',
              bbox=dict(boxstyle='round', facecolor='white', alpha=0.9, edgecolor=t_color, lw=2))
-    fig1.savefig(_fig_path(f"{name}_time_evolution.pdf"), bbox_inches='tight', format="pdf")
+    _save(fig1, f"{name}_time_evolution.pdf")
     plt.show()
     plt.close(fig1)
 
@@ -188,7 +200,7 @@ def plot_function(res, name):
     ax2.set_xlabel("State $x_1$"); ax2.set_ylabel("State $x_2$")
     ax2.grid(True)
     ax2.axhline(0, color='black', lw=0.5); ax2.axvline(0, color='black', lw=0.5)
-    fig2.savefig(_fig_path(f"{name}_nominal_flow.pdf"), bbox_inches='tight', format="pdf")
+    _save(fig2, f"{name}_nominal_flow.pdf")
     plt.show()
     plt.close(fig2)
 
@@ -203,7 +215,7 @@ def plot_function(res, name):
     add_trajectory_arrows(ax3, nx1, nx2, C_NOM, LW_NOM, LS_NOM_ALT, zorder=5)
     ax3.scatter(ex1, ex2, color=C_WC, marker=M_WC, s=MS_WC, zorder=6)
     add_trajectory_arrows(ax3, ex1, ex2, C_WC, LW_WC, LS_WC, zorder=6)
-    fig3.savefig(_fig_path(f"{name}_worst_case_flow.pdf"), bbox_inches='tight', format="pdf")
+    _save(fig3, f"{name}_worst_case_flow.pdf")
     plt.show()
     plt.close(fig3)
 
@@ -224,7 +236,7 @@ def plot_function(res, name):
     ax4.set_xlabel("Real Part")
     ax4.set_ylabel("Imaginary Part")
     ax4.grid(True)
-    fig4.savefig(_fig_path(f"{name}_spectral_targeting.pdf"), bbox_inches='tight', format="pdf")
+    _save(fig4, f"{name}_spectral_targeting.pdf")
     plt.show()
     plt.close(fig4)
 
@@ -246,7 +258,7 @@ def match_poles(p_prev, p_curr):
 
 
 def plot_pole_migration(N_values, wc_poles, problem, filename="spectral_migration_trajectory_2D.pdf", seed=0,
-                        inset_N_max=5, inset_box=(-0.9, -0.98, 0.95, 0.85)):
+                        inset_N_max=5, inset_box=(-0.95, -0.98, 0.88, 0.85)):
     """Worst-case closed-loop poles as a function of the horizon N, over the exact structured pseudospectrum.
 
     Also marks the dominant eigenvalue of the spectral-radius maximising perturbation (asymptotic worst case),
@@ -274,7 +286,7 @@ def plot_pole_migration(N_values, wc_poles, problem, filename="spectral_migratio
     cmap = mpl.cm.plasma
     norm = mpl.colors.Normalize(vmin=min(N_values), vmax=max(N_values))
     prev_poles = None
-    list_length = len(N_values)
+    N_last = max(N_values)
     matched = {}
     for N in N_values:
         if N not in wc_poles:
@@ -292,9 +304,9 @@ def plot_pole_migration(N_values, wc_poles, problem, filename="spectral_migratio
 
         if N > 5:
             if N == 6:
-                ax.annotate(f"6--{list_length + 1}", xy=(p[0].real, p[0].imag), xytext=(0, 4), textcoords='offset points',
+                ax.annotate(f"6--{N_last}", xy=(p[0].real, p[0].imag), xytext=(0, 4), textcoords='offset points',
                             ha='left', va='bottom', fontsize=8, color='black', zorder=10)
-                ax.annotate(f"{list_length + 1}--6", xy=(p[1].real, p[1].imag), xytext=(0, 4), textcoords='offset points',
+                ax.annotate(f"{N_last}--6", xy=(p[1].real, p[1].imag), xytext=(0, 4), textcoords='offset points',
                             ha='right', va='bottom', fontsize=8, color='black', zorder=10)
         else:
             ax.annotate(str(N), xy=(p[0].real, p[0].imag), xytext=(3, 4), textcoords='offset points',
@@ -305,7 +317,9 @@ def plot_pole_migration(N_values, wc_poles, problem, filename="spectral_migratio
 
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
-    cbar = fig.colorbar(sm, ax=ax, fraction=0.046, pad=0.04)
+    N_first = min(N_values)
+    cbar = fig.colorbar(sm, ax=ax, fraction=0.046, pad=0.04,
+                        ticks=np.unique([N_first, *range(5, N_last, 5), N_last]))   # always label the last horizon
     cbar.set_label('Planning Horizon ($N$)', rotation=270, labelpad=12, fontsize=7)
     cbar.ax.tick_params(labelsize=7)
 
@@ -328,7 +342,7 @@ def plot_pole_migration(N_values, wc_poles, problem, filename="spectral_migratio
                     inset_box)
 
     plt.tight_layout()
-    fig.savefig(_fig_path(filename), bbox_inches='tight', format="pdf")
+    _save(fig, filename)
     plt.show()
     print(f"\nSuccess! Plot saved as {_fig_path(filename)}.")
 
@@ -346,6 +360,8 @@ def _pole_inset(ax, problem, matched, Ns, cmap, norm, box, pad_left=0.015, pad_r
     y0, y1 = pts.imag.min() - pad_y, pts.imag.max() + pad_y
 
     axins = ax.inset_axes(box, transform=ax.transData)
+    axins.set_facecolor('white')
+    axins.keep_opaque = True                                   # stays opaque in the transparent saved figure
     # finer than the main grid, but only around the window: rows from |y1| to |y0| are all that is needed
     grid = structured_pseudospectrum(problem, re=(x0, x1), im_max=max(abs(y0), abs(y1)), n_re=61, n_real=2)
     plot_pseudospectrum(axins, grid, color=C_PSEUDO)
@@ -367,7 +383,10 @@ def _pole_inset(ax, problem, matched, Ns, cmap, norm, box, pad_left=0.015, pad_r
     axins.set_xlim(x0, x1)
     axins.set_ylim(y0, y1)
     axins.set_aspect('auto')
-    axins.tick_params(labelsize=5)
+    # tick labels on the top and right edges, so they do not collide with the main axis tick labels
+    axins.xaxis.tick_top()
+    axins.yaxis.tick_right()
+    axins.tick_params(labelsize=5, pad=1, length=2)
     axins.grid(True)
     ax.indicate_inset_zoom(axins, edgecolor='black', lw=0.6)
 
@@ -376,25 +395,25 @@ def _pole_inset(ax, problem, matched, Ns, cmap, norm, box, pad_left=0.015, pad_r
 # Fig. 3
 # ==========================================
 def plot_comparison(results, filename="cost_comparaison.pdf"):
-    """Bound comparison over the horizon: IQC/LTV and relaxed PEP upper bounds, LTI worst case, Monte Carlo, and the
-    spectral-radius maximising perturbation (pseudospectral approach of Guglielmi, Lubich and Sicilia)."""
+    """Bound comparison over the horizon: LTV (static IQC) and relaxed PEP (LTI) upper bounds, LTI worst case, Monte
+    Carlo, and the spectral-radius maximising perturbation (pseudospectral approach of Guglielmi, Lubich and Sicilia)."""
     myblue, myorange, myred, mygreen = '#006AA3', "#FAA00F", "#C1121F", "#5B9A64"
     horizons = results['horizons']
     plt.figure(figsize=(3.5, 2.5), dpi=300)
-    plt.plot(horizons, results['iqc'], '--v', color=myred, lw=2.0, markersize=5, label='IQC / LTV (Upper Bound)')
+    plt.plot(horizons, results['iqc'], '--v', color=myred, lw=2.0, markersize=5, label='LTV bound (static IQC)')
     plt.plot(horizons, results['pep'], '-s', color=myorange, lw=2.0, markersize=5, markerfacecolor='white',
-             markeredgewidth=2, label=r'PEP SDP (Relax. / Rank $> 1$)')
+             markeredgewidth=2, label='Relaxed PEP (LTI)')
     plt.plot(horizons, results['lti'], '-o', color=myblue, lw=2.0, markersize=5, label='Worst-case LTI (gradient ascent)')
     plt.plot(horizons, results['mc'], '*k', markersize=5, zorder=10, label='MC LTI Samples')
     plt.plot(horizons, results['ps'], '-', color=mygreen, lw=1.5, label='Max. spectral radius (pseudospectral)')
-    plt.fill_between(horizons, results['pep'], results['iqc'], color=myred, alpha=0.1, label='IQC conservatism')
-    plt.fill_between(horizons, results['lti'], results['pep'], color=myorange, alpha=0.15, label='PEP relaxation gap')
+    plt.fill_between(horizons, results['pep'], results['iqc'], color=myred, alpha=0.1, label='LTV vs LTI gap')
+    plt.fill_between(horizons, results['lti'], results['pep'], color=myorange, alpha=0.15, label='Relaxation gap')
     plt.xlabel("Finite Horizon ($N$)")
     plt.ylabel("Worst-Case Accumulated Cost")
     plt.xticks(horizons)
     plt.grid(True)
     plt.legend(loc='lower right', framealpha=0.9, edgecolor='black', fontsize=7)
     plt.tight_layout()
-    plt.savefig(_fig_path(filename), transparent=True, bbox_inches='tight', format="pdf")
+    _save(plt.gcf(), filename)
     plt.show()
     print(f"Success! Plot saved as {_fig_path(filename)}.")
